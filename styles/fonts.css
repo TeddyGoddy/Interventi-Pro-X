@@ -1,0 +1,69 @@
+/* Custom Fonts for Interventi Pro X */
+
+/* 
+  Nota: Per utilizzare Styrene B, devi:
+  1. Acquistare la licenza da Lineto (https://lineto.com/typefaces/styrene)
+  2. Aggiungere i file font nella cartella /fonts/
+  3. Decommentare il codice @font-face qui sotto
+*/
+
+/*
+@font-face {
+  font-family: 'Styrene B';
+  src: url('../fonts/StyreneB-Regular.woff2') format('woff2'),
+       url('../fonts/StyreneB-Regular.woff') format('woff');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Styrene B';
+  src: url('../fonts/StyreneB-Medium.woff2') format('woff2'),
+       url('../fonts/StyreneB-Medium.woff') format('woff');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Styrene B';
+  src: url('../fonts/StyreneB-Bold.woff2') format('woff2'),
+       url('../fonts/StyreneB-Bold.woff') format('woff');
+  font-weight: 700;
+  font-display: swap;
+}
+*/
+
+/* Fallback per Styrene B quando non disponibile */
+.font-styrene-fallback {
+  font-family: 'Helvetica Neue', 'Arial', sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* Utility classes per i font */
+.font-system {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.font-inter {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.font-roboto {
+  font-family: 'Roboto', system-ui, sans-serif;
+}
+
+.font-opensans {
+  font-family: 'Open Sans', system-ui, sans-serif;
+}
+
+.font-styrene {
+  font-family: 'Styrene B', 'Helvetica Neue', 'Arial', sans-serif;
+}
+
+/* Smooth font rendering per tutti i font */
+.font-smooth {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}

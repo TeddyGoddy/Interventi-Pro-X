@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interventi Pro X - Piattaforma Operativa</title>
+    <!-- Leaflet CSS from unpkg -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+    <!-- Leaflet MarkerCluster CSS from unpkg -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" crossorigin="anonymous" />
+    
+    <!-- Leaflet JS from unpkg, loaded directly to avoid dynamic loading issues -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <!-- Leaflet plugins -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Fonts -->
+    <link href="./styles/fonts.css" rel="stylesheet">
+    <style>
+      :root {
+        --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      
+      body {
+        font-family: var(--font-family);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      * {
+        font-family: var(--font-family);
+      }
+      .map-container, .leaflet-container {
+        height: 100%;
+        width: 100%;
+        border-radius: 0.5rem;
+      }
+      /* Custom marker pulse animation for urgent interventions */
+      @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.6); opacity: 0.3; }
+        100% { transform: scale(2.2); opacity: 0; }
+      }
+      .marker-pulse::before {
+        content: '';
+        position: absolute;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background-color: #ef4444; /* red-500 */
+        animation: pulse 1.5s infinite;
+        left: 5px; /* Centered for leaflet icon */
+        top: 5px; /* Centered for leaflet icon */
+        z-index: -1;
+      }
+      /* Style for selected marker */
+      .leaflet-marker-icon.selected-marker {
+        transform-origin: bottom;
+        transform: scale(1.25);
+        filter: drop-shadow(0 0 5px #3b82f6);
+      }
+      .leaflet-div-icon {
+        background: none;
+        border: none;
+      }
+      /* Map control styles */
+      .map-controls button {
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid transparent;
+        background-color: #FAF9F5;
+        color: #374151; /* gray-700 */
+        border: 1px solid #E5E7EB; /* border-light */
+      }
+      .dark .map-controls button {
+        background-color: #161B22; /* surface-dark */
+        color: #D1D5DB; /* gray-300 */
+        border: 1px solid #30363D; /* border-dark */
+      }
+      .map-controls button.active {
+        background-color: hsl(244, 76%, 58%); /* primary */
+        color: hsl(0, 0%, 100%); /* primary-foreground */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-color: hsl(244, 76%, 58%);
+      }
+
+      /* Custom Scrollbar Styles */
+      /* For Webkit-based browsers (Chrome, Safari, Edge) */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #FAF9F5; /* background-light */
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: #D1D5DB; /* gray-300 */
+        border-radius: 20px;
+        border: 2px solid #FAF9F5; /* background-light */
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: #9CA3AF; /* gray-400 */
+      }
+
+      /* Dark theme scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #161B22; /* surface-dark */
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background-color: #4B5563; /* gray-600 */
+        border-color: #161B22; /* surface-dark */
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background-color: #6B7280; /* gray-500 */
+      }
+
+      /* For Firefox */
+      html {
+        scrollbar-width: thin;
+        scrollbar-color: #D1D5DB #FAF9F5; /* thumb track */
+      }
+      html.dark {
+        scrollbar-color: #4B5563 #161B22;
+      }
+
+      /* FullCalendar Customizations */
+      :root {
+        --fc-border-color: #E5E7EB;
+        --fc-daygrid-event-dot-width: 8px;
+        --fc-list-event-dot-width: 10px;
+        --fc-event-bg-color: hsl(244, 76%, 58%);
+        --fc-event-border-color: hsl(244, 76%, 58%);
+        --fc-event-text-color: #fff;
+        --fc-button-bg-color: #FAF9F5;
+        --fc-button-text-color: #374151;
+        --fc-button-border-color: #E5E7EB;
+        --fc-button-hover-bg-color: #F3F4F6;
+        --fc-button-active-bg-color: hsl(244, 76%, 58%);
+        --fc-button-active-border-color: hsl(244, 76%, 58%);
+        --fc-button-active-text-color: #fff;
+        --fc-today-bg-color: rgba(59, 130, 246, 0.08);
+      }
+
+      .dark {
+        --fc-border-color: #30363D;
+        --fc-button-bg-color: #161B22;
+        --fc-button-text-color: #D1D5DB;
+        --fc-button-border-color: #30363D;
+        --fc-button-hover-bg-color: #30363D;
+        --fc-button-active-bg-color: hsl(244, 76%, 58%);
+        --fc-button-active-border-color: hsl(244, 76%, 58%);
+        --fc-today-bg-color: rgba(96, 165, 250, 0.1);
+      }
+
+      .fc {
+        height: 100%;
+        width: 100%;
+        font-size: 0.9rem;
+      }
+      .fc .fc-toolbar.fc-header-toolbar {
+        margin-bottom: 1.5em;
+        gap: 1.5rem;
+      }
+      .fc .fc-toolbar-title {
+        font-size: 1.5em;
+        font-weight: 700;
+        color: #111827;
+      }
+      .dark .fc .fc-toolbar-title {
+        color: #fff;
+      }
+      .fc .fc-button {
+        font-weight: 600;
+        text-transform: capitalize;
+        border-radius: 0.375rem;
+        padding: 0.5em 1em;
+        transition: all 0.2s;
+        box-shadow: none !important; /* Override default focus shadow */
+      }
+      .fc .fc-button:focus {
+        box-shadow: none !important;
+        outline: 2px solid var(--fc-button-active-border-color) !important;
+        outline-offset: 2px;
+      }
+      .fc-event {
+        cursor: grab;
+        padding: 4px 6px;
+        font-weight: 500;
+        border-radius: 4px;
+        border-width: 1px;
+      }
+      .fc-event:active {
+        cursor: grabbing;
+      }
+      .fc-event-main {
+        overflow: hidden;
+      }
+      .fc-daygrid-event-dot {
+        border-color: transparent;
+      }
+      
+      /* Event text contrast improvements */
+      .fc-event {
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+      }
+      
+      .fc-event-title {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+      }
+      
+      .fc-event-time {
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+      }
+      
+      /* FullCalendar Dark Theme Improvements */
+      .dark .fc {
+        background-color: #161B22;
+        color: #E5E7EB;
+      }
+      
+      /* Day numbers and text */
+      .dark .fc-daygrid-day-number {
+        color: #FFFFFF !important;
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+      
+      /* Day headers (Mon, Tue, etc.) */
+      .dark .fc-col-header-cell {
+        background-color: #21262D !important;
+        border-color: #30363D !important;
+      }
+      
+      .dark .fc-col-header-cell-cushion {
+        color: #FFFFFF !important;
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+      
+      /* Calendar cells */
+      .dark .fc-daygrid-day {
+        background-color: #161B22 !important;
+        border-color: #30363D !important;
+      }
+      
+      .dark .fc-daygrid-day:hover {
+        background-color: #21262D !important;
+      }
+      
+      /* Today cell */
+      .dark .fc-day-today {
+        background-color: rgba(96, 165, 250, 0.15) !important;
+      }
+      
+      /* Event text in calendar - Dark theme specific */
+      .dark .fc-event {
+        color: #FFFFFF !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+      }
+      
+      .dark .fc-event * {
+        color: #FFFFFF !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+      }
+      
+      .dark .fc-event-title {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+      }
+      
+      .dark .fc-event-time {
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+      }
+      
+      .dark .fc-daygrid-event {
+        color: #FFFFFF !important;
+      }
+      
+      .dark .fc-daygrid-event .fc-event-title {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+      }
+      
+      /* Calendar table borders */
+      .dark .fc-scrollgrid {
+        border-color: #30363D !important;
+      }
+      
+      .dark .fc-scrollgrid-section > * {
+        border-color: #30363D !important;
+      }
+      
+      /* Week numbers */
+      .dark .fc-daygrid-week-number {
+        color: #FFFFFF !important;
+        background-color: #21262D !important;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+      
+      /* More events link */
+      .dark .fc-daygrid-more-link {
+        color: #FFFFFF !important;
+        background-color: #3B82F6 !important;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+      
+      .dark .fc-daygrid-more-link:hover {
+        background-color: #374151 !important;
+      }
+
+      /* UI Density Styles */
+      /* Compact density */
+      [data-ui-density="compact"] {
+        --spacing-xs: 0.125rem;  /* 2px */
+        --spacing-sm: 0.25rem;   /* 4px */
+        --spacing-md: 0.375rem;  /* 6px */
+        --spacing-lg: 0.5rem;    /* 8px */
+        --spacing-xl: 0.75rem;   /* 12px */
+        --text-xs: 0.625rem;     /* 10px */
+        --text-sm: 0.6875rem;    /* 11px */
+        --text-base: 0.75rem;    /* 12px */
+        --text-lg: 0.8125rem;    /* 13px */
+        --button-height: 1.75rem; /* 28px */
+        --input-height: 1.75rem;  /* 28px */
+      }
+
+      /* Normal density (default) */
+      [data-ui-density="normal"] {
+        --spacing-xs: 0.375rem; /* 6px */
+        --spacing-sm: 0.5rem;   /* 8px */
+        --spacing-md: 0.75rem;  /* 12px */
+        --spacing-lg: 1rem;     /* 16px */
+        --spacing-xl: 1.5rem;   /* 24px */
+        --text-xs: 0.75rem;     /* 12px */
+        --text-sm: 0.875rem;    /* 14px */
+        --text-base: 1rem;      /* 16px */
+        --text-lg: 1.125rem;    /* 18px */
+        --button-height: 2.5rem; /* 40px */
+        --input-height: 2.5rem;  /* 40px */
+      }
+
+      /* Spacious density */
+      [data-ui-density="spacious"] {
+        --spacing-xs: 0.75rem;   /* 12px */
+        --spacing-sm: 1rem;      /* 16px */
+        --spacing-md: 1.5rem;    /* 24px */
+        --spacing-lg: 2rem;      /* 32px */
+        --spacing-xl: 3rem;      /* 48px */
+        --text-xs: 0.875rem;     /* 14px */
+        --text-sm: 1rem;         /* 16px */
+        --text-base: 1.125rem;   /* 18px */
+        --text-lg: 1.375rem;     /* 22px */
+        --button-height: 3.5rem; /* 56px */
+        --input-height: 3.5rem;  /* 56px */
+      }
+
+      /* Apply density variables to common elements */
+      .ui-density-text-xs { font-size: var(--text-xs); }
+      .ui-density-text-sm { font-size: var(--text-sm); }
+      .ui-density-text-base { font-size: var(--text-base); }
+      .ui-density-text-lg { font-size: var(--text-lg); }
+      
+      .ui-density-spacing-xs { padding: var(--spacing-xs); }
+      .ui-density-spacing-sm { padding: var(--spacing-sm); }
+      .ui-density-spacing-md { padding: var(--spacing-md); }
+      .ui-density-spacing-lg { padding: var(--spacing-lg); }
+      .ui-density-spacing-xl { padding: var(--spacing-xl); }
+      
+      .ui-density-gap-xs { gap: var(--spacing-xs); }
+      .ui-density-gap-sm { gap: var(--spacing-sm); }
+      .ui-density-gap-md { gap: var(--spacing-md); }
+      .ui-density-gap-lg { gap: var(--spacing-lg); }
+      .ui-density-gap-xl { gap: var(--spacing-xl); }
+      
+      .ui-density-button { height: var(--button-height); }
+      .ui-density-input { height: var(--input-height); }
+      
+      /* Custom bg-white override for warm off-white theme */
+      .bg-white {
+        background-color: #FAF9F5 !important;
+      }
+      
+      /* Hover states with warm off-white */
+      .hover\:bg-white:hover {
+        background-color: #F5F4F0 !important; /* Slightly darker for hover */
+      }
+      
+      .hover\:bg-gray-50:hover {
+        background-color: #F5F4F0 !important;
+      }
+      
+      /* Ensure dark mode still works */
+      .dark .bg-white {
+        background-color: #161B22 !important;
+      }
+      
+      .dark .hover\:bg-white:hover {
+        background-color: #21262D !important;
+      }
+      
+      .dark .hover\:bg-gray-50:hover {
+        background-color: #21262D !important;
+      }
+      
+      /* Improve text contrast on warm background */
+      .bg-white .text-gray-900 {
+        color: #1F2937 !important; /* Ensure good contrast */
+      }
+      
+      /* Border adjustments for warm theme */
+      .border-gray-200 {
+        border-color: #E8E6E0 !important; /* Slightly warmer border */
+      }
+      
+      /* Dark mode text contrast improvements */
+      .dark .text-gray-900 {
+        color: #F9FAFB !important; /* Almost white for maximum contrast */
+      }
+      
+      .dark .text-gray-800 {
+        color: #F3F4F6 !important; /* Very light gray */
+      }
+      
+      .dark .text-gray-700 {
+        color: #E5E7EB !important; /* Light gray */
+      }
+      
+      .dark .text-gray-600 {
+        color: #D1D5DB !important; /* Medium-light gray */
+      }
+      
+      .dark .text-gray-500 {
+        color: #9CA3AF !important; /* Medium gray */
+      }
+      
+      .dark .text-gray-400 {
+        color: #6B7280 !important; /* Medium-dark gray */
+      }
+      
+      /* Dark mode border improvements */
+      .dark .border-gray-200 {
+        border-color: #374151 !important; /* Better contrast border */
+      }
+      
+      .dark .border-gray-300 {
+        border-color: #4B5563 !important;
+      }
+      
+      /* Dark mode background improvements */
+      .dark .bg-gray-50 {
+        background-color: #1F2937 !important; /* Darker background */
+      }
+      
+      .dark .bg-gray-100 {
+        background-color: #374151 !important;
+      }
+      
+      /* Mobile Tab Optimization */
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      
+      /* Mobile responsive improvements */
+      @media (max-width: 640px) {
+        .mobile-tab-container {
+          padding-left: 0.75rem;
+          padding-right: 0.75rem;
+        }
+        
+        .mobile-tab-button {
+          min-width: fit-content;
+          white-space: nowrap;
+          font-size: 0.875rem;
+          padding: 0.5rem 0.75rem;
+        }
+        
+        /* Ensure mobile layout doesn't overflow */
+        .mobile-details-container {
+          max-width: 100vw;
+          overflow-x: hidden;
+        }
+        
+        /* Mobile tab navigation */
+        .mobile-tabs {
+          overflow-x: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        
+        .mobile-tabs::-webkit-scrollbar {
+          display: none;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "@google/genai": "https://esm.sh/@google/genai",
+    "dexie": "https://esm.sh/dexie@3.2.4",
+    "dexie-react-hooks": "https://esm.sh/dexie-react-hooks@1.1.7?deps=react@18.2.0,dexie@3.2.4",
+    "chart.js": "https://esm.sh/chart.js@4.4.3",
+    "react-chartjs-2": "https://esm.sh/react-chartjs-2@5.2.0?deps=react@18.2.0,chart.js@4.4.3",
+    "chartjs-adapter-date-fns": "https://esm.sh/chartjs-adapter-date-fns@3.0.0?deps=chart.js@4.4.3",
+    "date-fns/": "https://esm.sh/date-fns@3.6.0/",
+    "@fullcalendar/core": "https://esm.sh/@fullcalendar/core@6.1.11",
+    "@fullcalendar/react": "https://esm.sh/@fullcalendar/react@6.1.11?deps=react@18.2.0,@fullcalendar/core@6.1.11",
+    "@fullcalendar/daygrid": "https://esm.sh/@fullcalendar/daygrid@6.1.11?deps=@fullcalendar/core@6.1.11",
+    "@fullcalendar/timegrid": "https://esm.sh/@fullcalendar/timegrid@6.1.11?deps=@fullcalendar/core@6.1.11",
+    "@fullcalendar/list": "https://esm.sh/@fullcalendar/list@6.1.11?deps=@fullcalendar/core@6.1.11",
+    "@fullcalendar/interaction": "https://esm.sh/@fullcalendar/interaction@6.1.11?deps=@fullcalendar/core@6.1.11",
+    "@fullcalendar/core/locales/it": "https://esm.sh/@fullcalendar/core@6.1.11/locales/it.mjs",
+    "@fullcalendar/core/": "https://esm.sh/@fullcalendar/core@^6.1.18/"
+  }
+}
+</script>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: 'hsl(244, 76%, 58%)', // Indigo-like
+              light: 'hsl(244, 76%, 68%)',
+              dark: 'hsl(244, 70%, 48%)',
+              foreground: 'hsl(0, 0%, 100%)',
+            },
+            background: {
+              light: '#FAF9F5', // Warm off-white
+              dark: '#0D1117', // Almost black
+            },
+            surface: {
+              light: '#FAF9F5', // Warm off-white
+              dark: '#161B22', // Darker gray
+            },
+            border: {
+              light: '#E5E7EB', // Gray 200
+              dark: '#30363D', // Gray-ish border
+            },
+            ring: 'hsl(244, 76%, 62%)',
+          },
+          animation: {
+            'scale-in': 'scale-in 0.2s ease-out forwards',
+          },
+          keyframes: {
+            'scale-in': {
+              'from': { transform: 'scale(0.95)', opacity: '0' },
+              'to': { transform: 'scale(1)', opacity: '1' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-background-light dark:bg-background-dark">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

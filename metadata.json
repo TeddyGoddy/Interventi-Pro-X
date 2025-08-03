@@ -1,0 +1,6 @@
+{
+  "name": "Gestionale Interventi Pro",
+  "description": "Un'applicazione web avanzata per la gestione degli interventi tecnici, che combina un'interfaccia gestionale con geolocalizzazione, mappe interattive e un database per un monitoraggio efficiente delle operazioni sul campo.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
