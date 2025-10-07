@@ -90,28 +90,15 @@ Per garantire un'esperienza utente affidabile e performante, l'applicazione non 
 - **Intelligenza Artificiale**: Google Gemini API (`gemini-2.5-flash`) per:
     - Geolocalizzazione e reverse-geocoding di precisione.
 
-## Struttura dei File
+# Preview 
+![alt text](photo/home.png)
 
-```
-/
-├── components/
-│   ├── common/             # Componenti riutilizzabili (es. TagInput)
-│   ├── details_tabs/       # Componenti per le schede dei dettagli intervento
-│   ├── maps/               # Componenti specifici per la mappa
-│   ├── modals/             # Modali per la gestione delle risorse (Team, Personale, Veicolo)
-│   ├── CreateInterventionModal.tsx
-│   ├── Header.tsx
-│   ├── PlanningPage.tsx    # NUOVO: Pagina della pianificazione con calendario
-│   ├── ResourcesPage.tsx
-│   └── ...
-├── contexts/
-│   └── MapContext.tsx      # Gestisce lo stato di inizializzazione di Leaflet
-├── services/
-│   ├── db.ts               # Definizione dello schema e istanza del database Dexie.js
-│   ├── geolocationService.ts # Logica per chiamate API a Nominatim e Gemini (geocode)
-│   └── mockData.ts         # Dati fittizi usati per popolare il DB al primo avvio
-├── App.tsx                 # Componente principale che gestisce lo stato globale e le query al DB
-├── index.tsx               # Entry point dell'applicazione React
-├── index.html              # Struttura HTML, include CDN per le librerie
-└── types.ts                # Definizioni globali delle interfacce TypeScript
-```
+![alt text](photo/Pianificazione.png)
+
+![alt text](photo/Analytics.png)
+
+![alt text](<photo/Visuale Squadre .png>)
+
+![alt text](<photo/Visuale Personale.png>)
+
+![alt text](<photo/Visuale Mezzi.png>)
